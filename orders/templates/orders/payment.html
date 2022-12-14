@@ -1,0 +1,48 @@
+{{ rz_order_id|json_script:'rz-order-id' }}
+{{ amount|json_script:'amount' }}
+{{ api_key|json_script:'api-key' }}
+
+<button id="rzp-button1">Pay</button>
+<script src="https://checkout.razorpay.com/v1/checkout.js"></script>
+<script>
+    const rzOrderId = JSON.parse(document.getElementById('rz-order-id').textContent)
+    const amount = JSON.parse(document.getElementById('amount').textContent)
+    const apiKey = JSON.parse(document.getElementById('api-key').textContent)
+    var options = {
+        "key": apiKey,
+        "amount": amount,
+        "currency": "INR",
+        "name": "Acme Corp",
+        "description": "Test Transaction",
+        "order_id": rzOrderId,
+        "handler": function (response){
+            formData = new FormData()
+            formData.append("payment_id", response.razorpay_payment_id);
+            formData.append("order_id", response.razorpay_order_id);
+            formData.append("signature", response.razorpay_signature);
+            await fetch(`/success/`, {
+                method: 'POST',
+                headers: { 'X-CSRFToken': csrftoken },
+                mode: 'same-origin',
+                body: formData
+            })
+        },
+        "theme": {
+            "color": "#3399cc"
+        }
+    };
+    var rzp1 = new Razorpay(options);
+    rzp1.on('payment.failed', function (response){
+            alert(response.error.code);
+            alert(response.error.description);
+            alert(response.error.source);
+            alert(response.error.step);
+            alert(response.error.reason);
+            alert(response.error.metadata.order_id);
+            alert(response.error.metadata.payment_id);
+    });
+    document.getElementById('rzp-button1').onclick = function(e){
+        rzp1.open();
+        e.preventDefault();
+    }
+</script>
